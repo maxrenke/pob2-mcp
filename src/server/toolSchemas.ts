@@ -1204,6 +1204,50 @@ export function getSkillGemToolSchemas(): any[] {
         },
       },
     },
+    {
+      name: "import_from_mobalytics",
+      description: "Scrape a Mobalytics PoE2 build guide and import it into your PoB2 builds directory. Delegates to the moba2pob Python package which must be installed (pip install -e ~/repos/moba2pob). Creates a ready-to-use .xml file you can immediately open with analyze_build or lua_load_build.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          url: {
+            type: "string",
+            description: "Mobalytics build URL, e.g. https://mobalytics.gg/poe-2/builds/my-build",
+          },
+          merge: {
+            type: "boolean",
+            description: "Merge all build variants into one build with switchable Tree specs, Item Sets, and Skill Sets (default: false)",
+          },
+          variant: {
+            type: "string",
+            description: "Which variant to import when merge=false: '0', '1', '2', ... (default: '0')",
+          },
+          build_name: {
+            type: "string",
+            description: "Output filename without extension (default: derived from URL slug)",
+          },
+          no_reorder: {
+            type: "boolean",
+            description: "When merge=true, keep Mobalytics variant order instead of sorting leveling first (default: false)",
+          },
+        },
+        required: ["url"],
+      },
+    },
+    {
+      name: "upload_build_to_pobbin",
+      description: "Upload a local PoB2 build to pobb.in and get a shareable web link plus a pob2:// deep link that opens the build directly in Path of Building 2.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          build_name: {
+            type: "string",
+            description: "Build file name (e.g. 'MyBuild.xml')",
+          },
+        },
+        required: ["build_name"],
+      },
+    },
   ];
 }
 

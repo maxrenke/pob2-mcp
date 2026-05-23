@@ -33,6 +33,7 @@ import { handlePlanLeveling } from "../handlers/levelingHandlers.js";
 import { handleCheckBossReadiness } from "../handlers/bossReadinessHandlers.js";
 import { handleSuggestWatchersEye } from "../handlers/jewelAdvisorHandlers.js";
 import { handleSuggestCrafting } from "../handlers/craftingAdvisorHandler.js";
+import { handleImportFromMobalytics, handleUploadToPobbin } from "../handlers/mobalyticsHandlers.js";
 import { handleFindItemUpgrades as handleFindItemUpgradesNew } from "../handlers/itemShoppingHandler.js";
 
 export interface ToolRouterDependencies {
@@ -737,6 +738,26 @@ export async function routeToolCall(
       };
       return await handleSuggestCrafting(craftingContext, args as any);
     }
+
+    case "import_from_mobalytics":
+      if (!args?.url) throw new Error("Missing required argument: url");
+      return await handleImportFromMobalytics(
+        deps.contextBuilder.buildHandlerContext(),
+        {
+          url: args.url as string,
+          merge: args.merge as boolean | undefined,
+          variant: args.variant as string | undefined,
+          build_name: args.build_name as string | undefined,
+          no_reorder: args.no_reorder as boolean | undefined,
+        }
+      );
+
+    case "upload_build_to_pobbin":
+      if (!args?.build_name) throw new Error("Missing required argument: build_name");
+      return await handleUploadToPobbin(
+        deps.contextBuilder.buildHandlerContext(),
+        { build_name: args.build_name as string }
+      );
 
     default:
       throw new Error(`Unknown tool: ${name}`);

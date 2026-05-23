@@ -1,0 +1,238 @@
+/**
+ * Mobalytics Integration Handlers
+ *
+ * Provides two tools:
+ *   import_from_mobalytics - scrape a Mobalytics PoE2 build guide and write
+ *                            it to the PoB2 builds directory as an .xml file,
+ *                            delegating all conversion work to the moba2pob
+ *                            Python package (github.com/maxrenke/moba2pob).
+ *   upload_build_to_pobbin - encode any local PoB2 build and upload it to
+ *                            pobb.in, returning a web link + pob2:// deep link.
+ */
+
+import { execFile } from "child_process";
+import { promisify } from "util";
+import fs from "fs/promises";
+import path from "path";
+import zlib from "zlib";
+import https from "https";
+import { wrapHandler } from "../utils/errorHandling.js";
+import { sanitizeBuildName } from "../utils/pathSanitizer.js";
+
+const execFileAsync = promisify(execFile);
+
+// Minimal context - satisfied by HandlerContext and OptimizationContext alike.
+interface ImportContext {
+  pobDirectory: string;
+  buildService: { invalidateBuild: (name: string) => void };
+}
+
+// ── helpers ────────────────────────────────────────────────────────────────
+
+/** Derive a filesystem-safe slug from a Mobalytics URL or any string. */
+function buildNameFromUrl(url: string): string {
+  const m = url.match(/\/builds\/([^/?#]+)/);
+  const slug = m ? m[1] : "imported-build";
+  // Keep alphanumeric, hyphen, underscore, space; replace everything else.
+  return slug.replace(/[^a-zA-Z0-9_\- ]/g, "_").slice(0, 80);
+}
+
+/**
+ * Encode a PoB XML string into a pobb.in-compatible URL-safe base64 code.
+ * Matches moba2pob's encode() + _to_urlsafe() pipeline.
+ */
+function encodeXml(xml: string): string {
+  const compressed = zlib.deflateSync(Buffer.from(xml, "utf-8"), { level: 9 });
+  return compressed
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
+/**
+ * Upload a build code to pobb.in.
+ * Protocol: POST the URL-safe base64 code as plain text; response body is the
+ * build ID (e.g. "AbCdEfGh"). Mirrors moba2pob's upload.py without requiring
+ * the Python package.
+ */
+async function uploadToPobbin(
+  code: string
+): Promise<{ id: string; url: string; pob2_url: string; pob_url: string }> {
+  return new Promise((resolve, reject) => {
+    const body = Buffer.from(code, "ascii");
+    const req = https.request(
+      {
+        hostname: "pobb.in",
+        path: "/pob/",
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain",
+          "Content-Length": body.length,
+          "User-Agent": "pob2-mcp (+https://github.com/maxrenke/pob2-mcp)",
+        },
+      },
+      (res) => {
+        let data = "";
+        res.on("data", (chunk: Buffer) => (data += chunk.toString()));
+        res.on("end", () => {
+          if (res.statusCode !== 200) {
+            reject(
+              new Error(
+                `pobb.in returned HTTP ${res.statusCode}: ${data.slice(0, 200)}`
+              )
+            );
+            return;
+          }
+          const id = data.trim();
+          if (!id || id.includes("/") || id.length > 64) {
+            reject(new Error(`Unexpected pobb.in response: ${JSON.stringify(id)}`));
+            return;
+          }
+          resolve({
+            id,
+            url: `https://pobb.in/${id}`,
+            pob2_url: `pob2://pobbin/${id}`,
+            pob_url: `pob://pobbin/${id}`,
+          });
+        });
+      }
+    );
+    req.on("error", reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+// ── handlers ───────────────────────────────────────────────────────────────
+
+/**
+ * Import a Mobalytics PoE2 guide into the PoB2 builds directory.
+ *
+ * Shells out to `python -m moba2pob`, captures the base64 import code on
+ * stdout, decodes it to XML, and writes the result to
+ * <pobDirectory>/<build_name>.xml.
+ *
+ * Requires the moba2pob package to be installed in the Python environment:
+ *   pip install -e ~/repos/moba2pob
+ */
+export async function handleImportFromMobalytics(
+  context: ImportContext,
+  args: {
+    url: string;
+    merge?: boolean;
+    variant?: string;
+    build_name?: string;
+    no_reorder?: boolean;
+  }
+) {
+  return wrapHandler("import from Mobalytics", async () => {
+    const { url } = args;
+    const merge = args.merge ?? false;
+    const variant = args.variant ?? "0";
+    const noReorder = args.no_reorder ?? false;
+    const buildName = (args.build_name || buildNameFromUrl(url)).trim();
+
+    if (!buildName) throw new Error("build_name must not be empty");
+    if (!url.startsWith("http")) throw new Error("url must start with http");
+
+    // Resolve and safety-check the output path.
+    const outputXml = sanitizeBuildName(buildName + ".xml", context.pobDirectory);
+
+    // Build moba2pob argv.
+    const argv: string[] = ["-m", "moba2pob", url];
+    if (merge) {
+      argv.push("--merge");
+      if (noReorder) argv.push("--no-reorder");
+    } else {
+      argv.push("--variant", variant);
+    }
+    // stdout = base64 import code; stderr = progress lines
+
+    let stdout: string;
+    let stderr: string;
+    try {
+      const result = await execFileAsync("python", argv, {
+        maxBuffer: 10 * 1024 * 1024,
+        timeout: 60_000,
+      });
+      stdout = result.stdout;
+      stderr = result.stderr;
+    } catch (err: any) {
+      const msg = err.stderr?.trim() || err.message;
+      throw new Error(`moba2pob failed: ${msg}`);
+    }
+
+    const code = stdout.trim();
+    if (!code) throw new Error("moba2pob produced no output on stdout");
+
+    // Decode: standard base64 + zlib (same format as PoB import codes).
+    let xml: string;
+    try {
+      xml = zlib.inflateSync(Buffer.from(code, "base64")).toString("utf-8");
+    } catch {
+      throw new Error("Could not decode moba2pob output - is the URL valid?");
+    }
+
+    if (!xml.includes("<PathOfBuilding2>")) {
+      throw new Error("Decoded output is not a valid PoB2 XML document");
+    }
+
+    await fs.writeFile(outputXml, xml, "utf-8");
+    context.buildService.invalidateBuild(buildName + ".xml");
+
+    // Pull the summary line from stderr (starts with "# " or "build: ").
+    const summaryLines = stderr
+      .split("\n")
+      .filter((l) => l.startsWith("# ") || l.startsWith("build:"))
+      .join("\n");
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text:
+            `Imported successfully!\n\n` +
+            `File:   ${buildName}.xml\n` +
+            `Source: ${url}\n` +
+            (summaryLines ? `\n${summaryLines}\n` : "") +
+            `\nUse analyze_build or lua_load_build with "${buildName}.xml".`,
+        },
+      ],
+    };
+  });
+}
+
+/**
+ * Upload a local PoB2 build to pobb.in and return the shareable links.
+ *
+ * Reads the XML from <pobDirectory>/<build_name>, encodes it with zlib+base64,
+ * and POSTs it to pobb.in. No external dependencies required.
+ */
+export async function handleUploadToPobbin(
+  context: ImportContext,
+  args: { build_name: string }
+) {
+  return wrapHandler("upload to pobb.in", async () => {
+    const buildPath = sanitizeBuildName(
+      args.build_name,
+      context.pobDirectory
+    );
+    const xml = await fs.readFile(buildPath, "utf-8");
+
+    const code = encodeXml(xml);
+    const info = await uploadToPobbin(code);
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text:
+            `Build uploaded to pobb.in!\n\n` +
+            `Web:       ${info.url}\n` +
+            `Open PoB2: ${info.pob2_url}\n` +
+            `Open PoB1: ${info.pob_url}`,
+        },
+      ],
+    };
+  });
+}
