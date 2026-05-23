@@ -1205,6 +1205,24 @@ export function getSkillGemToolSchemas(): any[] {
       },
     },
     {
+      name: "import_from_pobbin",
+      description: "Download a shared Path of Building build from pobb.in by URL or build ID and save it to your builds directory. Accepts a full URL (https://pobb.in/AbCdEfGh) or a bare ID. Works for both PoE1 and PoE2 builds.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          url_or_id: {
+            type: "string",
+            description: "Full pobb.in URL (https://pobb.in/<id>) or bare build ID (e.g. AbCdEfGh)",
+          },
+          build_name: {
+            type: "string",
+            description: "Output filename without extension (default: the pobb.in build ID)",
+          },
+        },
+        required: ["url_or_id"],
+      },
+    },
+    {
       name: "import_from_mobalytics",
       description: "Scrape a Mobalytics PoE2 build guide and import it into your PoB2 builds directory. Delegates to the moba2pob Python package which must be installed (pip install -e ~/repos/moba2pob). Creates a ready-to-use .xml file you can immediately open with analyze_build or lua_load_build.",
       inputSchema: {

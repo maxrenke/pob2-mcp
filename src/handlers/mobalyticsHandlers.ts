@@ -1,11 +1,13 @@
 /**
  * Mobalytics Integration Handlers
  *
- * Provides two tools:
+ * Provides three tools:
  *   import_from_mobalytics - scrape a Mobalytics PoE2 build guide and write
  *                            it to the PoB2 builds directory as an .xml file,
  *                            delegating all conversion work to the moba2pob
  *                            Python package (github.com/maxrenke/moba2pob).
+ *   import_from_pobbin     - download a shared build from pobb.in by URL or
+ *                            build ID and save it to the builds directory.
  *   upload_build_to_pobbin - encode any local PoB2 build and upload it to
  *                            pobb.in, returning a web link + pob2:// deep link.
  */
@@ -47,6 +49,49 @@ function encodeXml(xml: string): string {
     .toString("base64")
     .replace(/\+/g, "-")
     .replace(/\//g, "_");
+}
+
+/**
+ * Download a build code from pobb.in by build ID.
+ * Protocol: GET /pob/<id> returns the URL-safe base64 code as plain text.
+ * This is the symmetric reverse of the upload (POST /pob/).
+ * NOTE: If the endpoint changes, update the path below.
+ */
+async function downloadFromPobbin(id: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        hostname: "pobb.in",
+        path: `/pob/${id}`,
+        method: "GET",
+        headers: {
+          "User-Agent": "pob2-mcp (+https://github.com/maxrenke/pob2-mcp)",
+        },
+      },
+      (res) => {
+        let data = "";
+        res.on("data", (chunk: Buffer) => (data += chunk.toString()));
+        res.on("end", () => {
+          if (res.statusCode !== 200) {
+            reject(
+              new Error(
+                `pobb.in returned HTTP ${res.statusCode}: ${data.slice(0, 200)}`
+              )
+            );
+            return;
+          }
+          const code = data.trim();
+          if (!code) {
+            reject(new Error("pobb.in returned empty body"));
+            return;
+          }
+          resolve(code);
+        });
+      }
+    );
+    req.on("error", reject);
+    req.end();
+  });
 }
 
 /**
@@ -195,6 +240,71 @@ export async function handleImportFromMobalytics(
             `File:   ${buildName}.xml\n` +
             `Source: ${url}\n` +
             (summaryLines ? `\n${summaryLines}\n` : "") +
+            `\nUse analyze_build or lua_load_build with "${buildName}.xml".`,
+        },
+      ],
+    };
+  });
+}
+
+/**
+ * Download a shared build from pobb.in and save it to the builds directory.
+ *
+ * Accepts a full pobb.in URL (https://pobb.in/<id>) or a bare build ID.
+ * Downloads the URL-safe base64 code, converts to standard base64, inflates
+ * the zlib payload, validates the XML root, and writes the file.
+ */
+export async function handleImportFromPobbin(
+  context: ImportContext,
+  args: { url_or_id: string; build_name?: string }
+) {
+  return wrapHandler("import from pobb.in", async () => {
+    const input = args.url_or_id.trim();
+    // Accept full URL or bare ID
+    const idMatch = input.match(/pobb\.in\/([A-Za-z0-9_-]+)/);
+    const id = idMatch ? idMatch[1] : input;
+    if (!id || id.length > 64 || !/^[A-Za-z0-9_-]+$/.test(id)) {
+      throw new Error(
+        "Invalid build ID. Pass a full pobb.in URL or a bare build ID (e.g. AbCdEfGh)."
+      );
+    }
+
+    const buildName = (args.build_name || id).trim();
+    if (!buildName) throw new Error("build_name must not be empty");
+
+    const outputXml = sanitizeBuildName(buildName + ".xml", context.pobDirectory);
+
+    // Fetch the URL-safe base64 code from pobb.in
+    const urlSafeCode = await downloadFromPobbin(id);
+
+    // pobb.in uses URL-safe base64; convert back to standard before inflate
+    const stdCode = urlSafeCode.replace(/-/g, "+").replace(/_/g, "/");
+
+    let xml: string;
+    try {
+      xml = zlib.inflateSync(Buffer.from(stdCode, "base64")).toString("utf-8");
+    } catch {
+      throw new Error("Could not decode pobb.in response - is the build ID valid?");
+    }
+
+    // Accept both PoE1 and PoE2 XML roots
+    if (!xml.includes("<PathOfBuilding") || !xml.includes("<Build")) {
+      throw new Error("Downloaded data is not a valid PoB XML document");
+    }
+
+    await fs.writeFile(outputXml, xml, "utf-8");
+    context.buildService.invalidateBuild(buildName + ".xml");
+
+    const isPoE2 = xml.includes("<PathOfBuilding2>");
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text:
+            `Build imported from pobb.in!\n\n` +
+            `File:   ${buildName}.xml\n` +
+            `Source: https://pobb.in/${id}\n` +
+            `Game:   ${isPoE2 ? "Path of Exile 2" : "Path of Exile 1"}\n` +
             `\nUse analyze_build or lua_load_build with "${buildName}.xml".`,
         },
       ],

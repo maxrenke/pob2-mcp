@@ -33,7 +33,7 @@ import { handlePlanLeveling } from "../handlers/levelingHandlers.js";
 import { handleCheckBossReadiness } from "../handlers/bossReadinessHandlers.js";
 import { handleSuggestWatchersEye } from "../handlers/jewelAdvisorHandlers.js";
 import { handleSuggestCrafting } from "../handlers/craftingAdvisorHandler.js";
-import { handleImportFromMobalytics, handleUploadToPobbin } from "../handlers/mobalyticsHandlers.js";
+import { handleImportFromMobalytics, handleImportFromPobbin, handleUploadToPobbin } from "../handlers/mobalyticsHandlers.js";
 import { handleFindItemUpgrades as handleFindItemUpgradesNew } from "../handlers/itemShoppingHandler.js";
 
 export interface ToolRouterDependencies {
@@ -738,6 +738,16 @@ export async function routeToolCall(
       };
       return await handleSuggestCrafting(craftingContext, args as any);
     }
+
+    case "import_from_pobbin":
+      if (!args?.url_or_id) throw new Error("Missing required argument: url_or_id");
+      return await handleImportFromPobbin(
+        deps.contextBuilder.buildHandlerContext(),
+        {
+          url_or_id: args.url_or_id as string,
+          build_name: args.build_name as string | undefined,
+        }
+      );
 
     case "import_from_mobalytics":
       if (!args?.url) throw new Error("Missing required argument: url");
