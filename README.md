@@ -467,6 +467,13 @@ Issues and pull requests are welcome!
 	<tbody>
 		<tr>
             <td align="center">
+                <a href="https://github.com/maxrenke">
+                    <img src="https://avatars.githubusercontent.com/u/7470886?v=4" width="100;" alt="maxrenke"/>
+                    <br />
+                    <sub><b>Maxwell Renke</b></sub>
+                </a>
+            </td>
+            <td align="center">
                 <a href="https://github.com/ianderse">
                     <img src="https://avatars.githubusercontent.com/u/5242189?v=4" width="100;" alt="ianderse"/>
                     <br />
