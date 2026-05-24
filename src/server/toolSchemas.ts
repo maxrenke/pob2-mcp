@@ -1234,7 +1234,7 @@ export function getSkillGemToolSchemas(): any[] {
           },
           merge: {
             type: "boolean",
-            description: "Merge all build variants into one build with switchable Tree specs, Item Sets, and Skill Sets (default: false)",
+            description: "Merge all build variants into one build with switchable Tree specs, Item Sets, and Skill Sets (default: true)",
           },
           variant: {
             type: "string",
@@ -1247,6 +1247,18 @@ export function getSkillGemToolSchemas(): any[] {
           no_reorder: {
             type: "boolean",
             description: "When merge=true, keep Mobalytics variant order instead of sorting leveling first (default: false)",
+          },
+          class_name: {
+            type: "string",
+            description: "Override the detected class name (e.g. 'Witch') when auto-detection fails",
+          },
+          ascendancy: {
+            type: "string",
+            description: "Override the detected ascendancy name (e.g. 'Lich') when auto-detection fails",
+          },
+          level: {
+            type: "number",
+            description: "Character level to record in the build (default: 90)",
           },
         },
         required: ["url"],
@@ -1273,6 +1285,18 @@ export function getSkillGemToolSchemas(): any[] {
           no_reorder: {
             type: "boolean",
             description: "Keep Maxroll phase order instead of sorting leveling first (default: false)",
+          },
+          class_name: {
+            type: "string",
+            description: "Override the detected class name when auto-detection fails",
+          },
+          ascendancy: {
+            type: "string",
+            description: "Override the detected ascendancy name when auto-detection fails",
+          },
+          level: {
+            type: "number",
+            description: "Character level to record in the build (default: 90)",
           },
         },
         required: ["url"],

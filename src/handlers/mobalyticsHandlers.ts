@@ -176,11 +176,14 @@ export async function handleImportFromMobalytics(
     variant?: string;
     build_name?: string;
     no_reorder?: boolean;
+    class_name?: string;
+    ascendancy?: string;
+    level?: number;
   }
 ) {
   return wrapHandler("import from Mobalytics", async () => {
     const { url } = args;
-    const merge = args.merge ?? false;
+    const merge = args.merge ?? true;
     const variant = args.variant ?? "0";
     const noReorder = args.no_reorder ?? false;
     const buildName = (args.build_name || buildNameFromUrl(url)).trim();
@@ -197,8 +200,11 @@ export async function handleImportFromMobalytics(
       argv.push("--merge");
       if (noReorder) argv.push("--no-reorder");
     } else {
-      argv.push("--variant", variant);
+      argv.push("--no-merge", "--variant", variant);
     }
+    if (args.class_name) argv.push("--class", args.class_name);
+    if (args.ascendancy) argv.push("--ascendancy", args.ascendancy);
+    if (args.level !== undefined) argv.push("--level", String(args.level));
     // stdout = base64 import code; stderr = progress lines
 
     let stdout: string;
@@ -212,18 +218,18 @@ export async function handleImportFromMobalytics(
       stderr = result.stderr;
     } catch (err: any) {
       const msg = err.stderr?.trim() || err.message;
-      throw new Error(`moba2pob failed: ${msg}`);
+      throw new Error(`guide2pob failed: ${msg}`);
     }
 
     const code = stdout.trim();
-    if (!code) throw new Error("moba2pob produced no output on stdout");
+    if (!code) throw new Error("guide2pob produced no output on stdout");
 
     // Decode: standard base64 + zlib (same format as PoB import codes).
     let xml: string;
     try {
       xml = zlib.inflateSync(Buffer.from(code, "base64")).toString("utf-8");
     } catch {
-      throw new Error("Could not decode moba2pob output - is the URL valid?");
+      throw new Error("Could not decode guide2pob output - is the URL valid?");
     }
 
     if (!xml.includes("<PathOfBuilding2>")) {
@@ -271,6 +277,9 @@ export async function handleImportFromMaxroll(
     merge?: boolean;
     build_name?: string;
     no_reorder?: boolean;
+    class_name?: string;
+    ascendancy?: string;
+    level?: number;
   }
 ) {
   return wrapHandler("import from Maxroll", async () => {
@@ -293,6 +302,9 @@ export async function handleImportFromMaxroll(
     } else {
       argv.push("--no-merge");
     }
+    if (args.class_name) argv.push("--class", args.class_name);
+    if (args.ascendancy) argv.push("--ascendancy", args.ascendancy);
+    if (args.level !== undefined) argv.push("--level", String(args.level));
 
     let stdout: string;
     let stderr: string;

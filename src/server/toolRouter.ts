@@ -759,6 +759,9 @@ export async function routeToolCall(
           variant: args.variant as string | undefined,
           build_name: args.build_name as string | undefined,
           no_reorder: args.no_reorder as boolean | undefined,
+          class_name: args.class_name as string | undefined,
+          ascendancy: args.ascendancy as string | undefined,
+          level: args.level as number | undefined,
         }
       );
 
@@ -771,6 +774,9 @@ export async function routeToolCall(
           merge: args.merge as boolean | undefined,
           build_name: args.build_name as string | undefined,
           no_reorder: args.no_reorder as boolean | undefined,
+          class_name: args.class_name as string | undefined,
+          ascendancy: args.ascendancy as string | undefined,
+          level: args.level as number | undefined,
         }
       );
 
