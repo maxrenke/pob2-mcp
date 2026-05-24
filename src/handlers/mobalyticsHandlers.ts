@@ -1,11 +1,14 @@
 /**
- * Mobalytics Integration Handlers
+ * Guide Import Handlers
  *
- * Provides three tools:
+ * Provides tools:
  *   import_from_mobalytics - scrape a Mobalytics PoE2 build guide and write
  *                            it to the PoB2 builds directory as an .xml file,
- *                            delegating all conversion work to the moba2pob
- *                            Python package (github.com/maxrenke/moba2pob).
+ *                            delegating all conversion work to the guide2pob
+ *                            Python package (github.com/maxrenke/guide2pob).
+ *   import_from_maxroll    - scrape a Maxroll PoE2 build planner and write it
+ *                            to the PoB2 builds directory as an .xml file,
+ *                            also delegating to the guide2pob package.
  *   import_from_pobbin     - download a shared build from pobb.in by URL or
  *                            build ID and save it to the builds directory.
  *   upload_build_to_pobbin - encode any local PoB2 build and upload it to
@@ -31,9 +34,14 @@ interface ImportContext {
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
-/** Derive a filesystem-safe slug from a Mobalytics URL or any string. */
+/** Derive a filesystem-safe slug from a build guide URL or any string. */
 function buildNameFromUrl(url: string): string {
-  const m = url.match(/\/builds\/([^/?#]+)/);
+  // Mobalytics: /builds/<slug>
+  // Maxroll: /poe2/planner/<id> or /poe2/build/<slug>
+  const m =
+    url.match(/\/builds\/([^/?#]+)/) ||
+    url.match(/\/planner\/([^/?#]+)/) ||
+    url.match(/\/build\/([^/?#]+)/);
   const slug = m ? m[1] : "imported-build";
   // Keep alphanumeric, hyphen, underscore, space; replace everything else.
   return slug.replace(/[^a-zA-Z0-9_\- ]/g, "_").slice(0, 80);
@@ -153,12 +161,12 @@ async function uploadToPobbin(
 /**
  * Import a Mobalytics PoE2 guide into the PoB2 builds directory.
  *
- * Shells out to `python -m moba2pob`, captures the base64 import code on
+ * Shells out to `python -m guide2pob`, captures the base64 import code on
  * stdout, decodes it to XML, and writes the result to
  * <pobDirectory>/<build_name>.xml.
  *
- * Requires the moba2pob package to be installed in the Python environment:
- *   pip install -e ~/repos/moba2pob
+ * Requires the guide2pob package to be installed in the Python environment:
+ *   pip install -e ~/repos/guide2pob
  */
 export async function handleImportFromMobalytics(
   context: ImportContext,
@@ -183,8 +191,8 @@ export async function handleImportFromMobalytics(
     // Resolve and safety-check the output path.
     const outputXml = sanitizeBuildName(buildName + ".xml", context.pobDirectory);
 
-    // Build moba2pob argv.
-    const argv: string[] = ["-m", "moba2pob", url];
+    // Build guide2pob argv.
+    const argv: string[] = ["-m", "guide2pob", url];
     if (merge) {
       argv.push("--merge");
       if (noReorder) argv.push("--no-reorder");
@@ -226,6 +234,97 @@ export async function handleImportFromMobalytics(
     context.buildService.invalidateBuild(buildName + ".xml");
 
     // Pull the summary line from stderr (starts with "# " or "build: ").
+    const summaryLines = stderr
+      .split("\n")
+      .filter((l) => l.startsWith("# ") || l.startsWith("build:"))
+      .join("\n");
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text:
+            `Imported successfully!\n\n` +
+            `File:   ${buildName}.xml\n` +
+            `Source: ${url}\n` +
+            (summaryLines ? `\n${summaryLines}\n` : "") +
+            `\nUse analyze_build or lua_load_build with "${buildName}.xml".`,
+        },
+      ],
+    };
+  });
+}
+
+/**
+ * Import a Maxroll PoE2 build planner into the PoB2 builds directory.
+ *
+ * Shells out to `python -m guide2pob`, which auto-detects Maxroll URLs.
+ * Captures the base64 import code on stdout, decodes it to XML, and writes
+ * <pobDirectory>/<build_name>.xml.
+ *
+ * Requires the guide2pob package: pip install -e ~/repos/guide2pob
+ */
+export async function handleImportFromMaxroll(
+  context: ImportContext,
+  args: {
+    url: string;
+    merge?: boolean;
+    build_name?: string;
+    no_reorder?: boolean;
+  }
+) {
+  return wrapHandler("import from Maxroll", async () => {
+    const { url } = args;
+    const merge = args.merge ?? true;
+    const noReorder = args.no_reorder ?? false;
+    const buildName = (args.build_name || buildNameFromUrl(url)).trim();
+
+    if (!buildName) throw new Error("build_name must not be empty");
+    if (!url.startsWith("http")) throw new Error("url must start with http");
+    if (!url.includes("maxroll.gg"))
+      throw new Error("url must be a maxroll.gg build planner URL");
+
+    const outputXml = sanitizeBuildName(buildName + ".xml", context.pobDirectory);
+
+    const argv: string[] = ["-m", "guide2pob", url];
+    if (merge) {
+      argv.push("--merge");
+      if (noReorder) argv.push("--no-reorder");
+    } else {
+      argv.push("--no-merge");
+    }
+
+    let stdout: string;
+    let stderr: string;
+    try {
+      const result = await execFileAsync("python", argv, {
+        maxBuffer: 10 * 1024 * 1024,
+        timeout: 60_000,
+      });
+      stdout = result.stdout;
+      stderr = result.stderr;
+    } catch (err: any) {
+      const msg = err.stderr?.trim() || err.message;
+      throw new Error(`guide2pob failed: ${msg}`);
+    }
+
+    const code = stdout.trim();
+    if (!code) throw new Error("guide2pob produced no output on stdout");
+
+    let xml: string;
+    try {
+      xml = zlib.inflateSync(Buffer.from(code, "base64")).toString("utf-8");
+    } catch {
+      throw new Error("Could not decode guide2pob output - is the URL valid?");
+    }
+
+    if (!xml.includes("<PathOfBuilding2>")) {
+      throw new Error("Decoded output is not a valid PoB2 XML document");
+    }
+
+    await fs.writeFile(outputXml, xml, "utf-8");
+    context.buildService.invalidateBuild(buildName + ".xml");
+
     const summaryLines = stderr
       .split("\n")
       .filter((l) => l.startsWith("# ") || l.startsWith("build:"))

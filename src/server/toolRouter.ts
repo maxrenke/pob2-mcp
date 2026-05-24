@@ -33,7 +33,7 @@ import { handlePlanLeveling } from "../handlers/levelingHandlers.js";
 import { handleCheckBossReadiness } from "../handlers/bossReadinessHandlers.js";
 import { handleSuggestWatchersEye } from "../handlers/jewelAdvisorHandlers.js";
 import { handleSuggestCrafting } from "../handlers/craftingAdvisorHandler.js";
-import { handleImportFromMobalytics, handleImportFromPobbin, handleUploadToPobbin } from "../handlers/mobalyticsHandlers.js";
+import { handleImportFromMobalytics, handleImportFromMaxroll, handleImportFromPobbin, handleUploadToPobbin } from "../handlers/mobalyticsHandlers.js";
 import { handleFindItemUpgrades as handleFindItemUpgradesNew } from "../handlers/itemShoppingHandler.js";
 
 export interface ToolRouterDependencies {
@@ -757,6 +757,18 @@ export async function routeToolCall(
           url: args.url as string,
           merge: args.merge as boolean | undefined,
           variant: args.variant as string | undefined,
+          build_name: args.build_name as string | undefined,
+          no_reorder: args.no_reorder as boolean | undefined,
+        }
+      );
+
+    case "import_from_maxroll":
+      if (!args?.url) throw new Error("Missing required argument: url");
+      return await handleImportFromMaxroll(
+        deps.contextBuilder.buildHandlerContext(),
+        {
+          url: args.url as string,
+          merge: args.merge as boolean | undefined,
           build_name: args.build_name as string | undefined,
           no_reorder: args.no_reorder as boolean | undefined,
         }

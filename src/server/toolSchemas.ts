@@ -1224,7 +1224,7 @@ export function getSkillGemToolSchemas(): any[] {
     },
     {
       name: "import_from_mobalytics",
-      description: "Scrape a Mobalytics PoE2 build guide and import it into your PoB2 builds directory. Delegates to the moba2pob Python package which must be installed (pip install -e ~/repos/moba2pob). Creates a ready-to-use .xml file you can immediately open with analyze_build or lua_load_build.",
+      description: "Scrape a Mobalytics PoE2 build guide and import it into your PoB2 builds directory. Delegates to the guide2pob Python package which must be installed (pip install -e ~/repos/guide2pob). Creates a ready-to-use .xml file you can immediately open with analyze_build or lua_load_build.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1247,6 +1247,32 @@ export function getSkillGemToolSchemas(): any[] {
           no_reorder: {
             type: "boolean",
             description: "When merge=true, keep Mobalytics variant order instead of sorting leveling first (default: false)",
+          },
+        },
+        required: ["url"],
+      },
+    },
+    {
+      name: "import_from_maxroll",
+      description: "Scrape a Maxroll PoE2 build planner and import it into your PoB2 builds directory. Delegates to the guide2pob Python package (pip install -e ~/repos/guide2pob). Creates a ready-to-use .xml file with all phases merged into switchable Tree specs, Item Sets, and Skill Sets.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          url: {
+            type: "string",
+            description: "Maxroll build planner URL, e.g. https://maxroll.gg/poe2/planner/abc123",
+          },
+          merge: {
+            type: "boolean",
+            description: "Merge all build phases into one build with switchable specs (default: true)",
+          },
+          build_name: {
+            type: "string",
+            description: "Output filename without extension (default: derived from URL slug)",
+          },
+          no_reorder: {
+            type: "boolean",
+            description: "Keep Maxroll phase order instead of sorting leveling first (default: false)",
           },
         },
         required: ["url"],
