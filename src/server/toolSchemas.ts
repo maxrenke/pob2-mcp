@@ -807,6 +807,55 @@ export function getLuaToolSchemas(): any[] {
         required: ["slot"],
       },
     },
+    {
+      name: "generate_upgrade_links",
+      description: "Scan the loaded build's gear slots, compute each slot's gaps (resistances, life/ES), and emit a ready-to-click pathofexile.com/trade2 search link per slot with filters pre-applied. No login or trade auth required. Requires a build loaded via lua_load_build.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          league: {
+            type: "string",
+            description: "Exact current PoE2 league name as it appears on the trade site (e.g. 'Standard' or the current temp league).",
+          },
+          build_name: {
+            type: "string",
+            description: "Build XML to read stats from (bridge-free). Must be a build saved by PoB or imported from your live character (those contain computed stats). If omitted, uses the build loaded in the Lua bridge.",
+          },
+          slots: {
+            type: "array",
+            items: { type: "string" },
+            description: "Optional subset of slots to generate links for (e.g. ['Helmet','Boots']). Defaults to all armour/accessory slots.",
+          },
+          max_price: {
+            type: "number",
+            description: "Optional max price filter applied to every link.",
+          },
+          currency: {
+            type: "string",
+            description: "Currency for max_price (default: 'chaos').",
+          },
+        },
+        required: ["league"],
+      },
+    },
+    {
+      name: "evaluate_trade_item",
+      description: "Evaluate whether a pasted item is an upgrade for the loaded build. Paste the item text (in-game Ctrl+C, or copied from the trade site). The item is injected into the build via the Lua bridge, the build is recomputed, and the real DPS/EHP/resist delta vs the currently equipped item is reported. The build is restored afterwards. Requires a build loaded via lua_load_build.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          item_text: {
+            type: "string",
+            description: "The full item text to evaluate (name, base, mods — as copied from the game or trade site).",
+          },
+          slot: {
+            type: "string",
+            description: "Optional target slot (e.g. 'Helmet', 'Ring 1'). If omitted, PoB auto-detects the slot from the item type.",
+          },
+        },
+        required: ["item_text"],
+      },
+    },
   ];
 }
 

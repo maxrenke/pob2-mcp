@@ -35,6 +35,7 @@ import { handleSuggestWatchersEye } from "../handlers/jewelAdvisorHandlers.js";
 import { handleSuggestCrafting } from "../handlers/craftingAdvisorHandler.js";
 import { handleImportFromMobalytics, handleImportFromMaxroll, handleImportFromPobbin, handleUploadToPobbin } from "../handlers/mobalyticsHandlers.js";
 import { handleFindItemUpgrades as handleFindItemUpgradesNew } from "../handlers/itemShoppingHandler.js";
+import { handleGenerateUpgradeLinks, handleEvaluateTradeItem } from "../handlers/upgradeFinderHandlers.js";
 
 export interface ToolRouterDependencies {
   toolGate: ToolGate;
@@ -565,6 +566,27 @@ export async function routeToolCall(
       if (!args) throw new Error("Missing arguments");
       return await handleFindItemUpgradesNew(
         { getLuaClient: deps.getLuaClient },
+        args as any
+      );
+    }
+
+    case "generate_upgrade_links": {
+      if (!args) throw new Error("Missing arguments");
+      const buildSvc = deps.contextBuilder.buildHandlerContext().buildService;
+      return await handleGenerateUpgradeLinks(
+        {
+          getLuaClient: deps.getLuaClient,
+          ensureLuaClient: deps.ensureLuaClient,
+          readBuildXml: (name: string) => buildSvc.readBuild(name),
+        },
+        args as any
+      );
+    }
+
+    case "evaluate_trade_item": {
+      if (!args) throw new Error("Missing arguments");
+      return await handleEvaluateTradeItem(
+        { getLuaClient: deps.getLuaClient, ensureLuaClient: deps.ensureLuaClient },
         args as any
       );
     }
