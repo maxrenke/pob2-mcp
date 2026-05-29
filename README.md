@@ -135,36 +135,53 @@ npm run build
 | `POB_TIMEOUT_MS` | `10000` | Lua request timeout (ms) |
 | `POE_TRADE_ENABLED` | `false` | Enable Trade API tools |
 
-### Setting Up the Lua Bridge
+### Setting Up the Lua Bridge (optional, advanced)
 
-The Lua bridge uses PoB's actual calculation engine for accurate stats.
+> **The Lua bridge is optional and off by default.** Everything under
+> "Build Analysis", "Tree Analysis", currency data, and the XML-based tools
+> works on a fresh clone with no bridge. Only the high-fidelity calc tools
+> (`lua_*`, `evaluate_trade_item`, live `get_stats`, defensive analysis, etc.)
+> require it. Leave `POB_LUA_ENABLED` unset and those tools simply report that
+> the bridge isn't enabled.
+
+The bridge spawns a **headless Path of Building** under LuaJIT and talks to it
+over a stdio JSON-RPC API (`HeadlessWrapper.lua` with `POB_API_STDIO=1`).
+
+**Important:** there is **no publicly distributed PoE2 PoB build with this
+stdio API.** A PoE1 implementation exists at
+[`ianderse/PathOfBuilding@api-stdio`](https://github.com/ianderse/PathOfBuilding/tree/api-stdio)
+(PoE1 only — it computes PoE1 builds, not PoE2). Enabling the bridge for **PoE2**
+therefore requires supplying your own local headless PoE2 PoB that exposes the
+same protocol — this is an advanced, self-hosted step, not something a fresh
+clone can do out of the box.
 
 #### 1. Install LuaJIT
 ```bash
 # macOS
 brew install luajit
-
 # Ubuntu/Debian
 sudo apt-get install luajit
-
-# Windows: download from https://luajit.org/ and add to PATH
+# Windows (scoop)
+scoop install luajit            # or download from https://luajit.org/ and add to PATH
 ```
 
-#### 2. Clone PathOfBuilding
-```bash
-git clone https://github.com/ianderse/PathOfBuilding.git
-cd PathOfBuilding
-git checkout api-stdio
-```
-Note the full path to the `src/` directory — that's your `POB_FORK_PATH`.
+#### 2. Provide a headless PoB with the stdio API
+Point `POB_FORK_PATH` at the `src/` directory of a Path of Building checkout
+whose `HeadlessWrapper.lua` boots the stdio JSON-RPC server when
+`POB_API_STDIO=1`. For PoE1, that's the `ianderse/PathOfBuilding@api-stdio`
+branch above. For PoE2, you must supply an equivalent locally.
 
 #### 3. Verify
 ```bash
 luajit -v
-ls /path/to/PathOfBuilding/src/HeadlessWrapper.lua
+ls "$POB_FORK_PATH/HeadlessWrapper.lua"
+# ping test (should print a ready banner, then {"ok":true,"pong":true}):
+( echo '{"action":"ping"}'; echo '{"action":"quit"}' ) | POB_API_STDIO=1 luajit "$POB_FORK_PATH/HeadlessWrapper.lua"
 ```
 
-#### 4. Update Claude Desktop config and restart Claude Desktop
+#### 4. Enable it
+Set `POB_LUA_ENABLED=true`, `POB_FORK_PATH`, and `POB_CMD` (the luajit path) in
+your Claude config, then restart.
 
 ---
 
