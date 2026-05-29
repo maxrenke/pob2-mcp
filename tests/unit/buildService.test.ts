@@ -80,12 +80,12 @@ describe('BuildService', () => {
 
   describe('readBuild', () => {
     const sampleBuild = `<?xml version="1.0" encoding="UTF-8"?>
-<PathOfBuilding>
+<PathOfBuilding2>
   <Build className="Ranger" ascendClassName="Deadeye" level="90">
     <PlayerStat stat="Life" value="4500"/>
     <PlayerStat stat="TotalDPS" value="1000000"/>
   </Build>
-</PathOfBuilding>`;
+</PathOfBuilding2>`;
 
     it('should read and parse build XML', async () => {
       await fs.writeFile(path.join(tempDir, 'test.xml'), sampleBuild);
@@ -192,10 +192,14 @@ describe('BuildService', () => {
       const build = {
         Build: { className: 'Ranger' },
         Items: {
+          Item: [
+            { id: '1', '#text': 'Rarity: Rare\nDeath Bow\nThicket Bow' },
+            { id: '2', '#text': 'Rarity: Unique\nKaom\'s Heart\nGlorious Plate' },
+          ],
           ItemSet: {
             Slot: [
-              { name: 'Weapon 1', Item: 'Rarity: Rare\nDeath Bow\nThicket Bow' },
-              { name: 'Body Armour', Item: 'Rarity: Unique\nKaom\'s Heart\nGlorious Plate' },
+              { name: 'Weapon 1', itemId: '1' },
+              { name: 'Body Armour', itemId: '2' },
             ],
           },
         },
@@ -256,7 +260,7 @@ describe('BuildService', () => {
     it('should return active spec from array', () => {
       const build = {
         Tree: {
-          activeSpec: '1', // 1-indexed
+          activeSpec: '2', // 1-indexed -> selects the second spec
           Spec: [
             { nodes: '1,2,3', treeVersion: '3_26' },
             { nodes: '4,5,6', treeVersion: '3_26' },
@@ -1271,9 +1275,9 @@ LevelReq: 68
 
   describe('cache management', () => {
     const sampleBuild = `<?xml version="1.0" encoding="UTF-8"?>
-<PathOfBuilding>
+<PathOfBuilding2>
   <Build className="Ranger" level="90"/>
-</PathOfBuilding>`;
+</PathOfBuilding2>`;
 
     it('should clear all cached builds', async () => {
       await fs.writeFile(path.join(tempDir, 'build1.xml'), sampleBuild);

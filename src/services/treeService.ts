@@ -420,6 +420,9 @@ export class TreeService {
     treeData: PassiveTreeData,
     maxPaths: number = 1
   ): Array<{ nodes: string[]; cost: number }> {
+    // Target already allocated — no path needed.
+    if (allocatedNodes.has(targetNodeId)) return [];
+
     // Multi-source BFS from all allocated nodes toward the target.
     // O(V+E) — correct and optimal for unit-weight graphs.
     // Bidirectional edges: PoB tree edges are traversable both ways.
