@@ -68,7 +68,7 @@ class PoBMCPServer {
   constructor() {
     this.server = new Server(
       {
-        name: "pob-mcp-server",
+        name: "pob2-mcp-server",
         version: "1.0.0",
       },
       {
@@ -88,8 +88,8 @@ class PoBMCPServer {
     // Default Path of Building directory (can be customized)
     // Auto-detect based on platform
     const defaultPoBPath = process.platform === 'darwin'
-      ? path.join(os.homedir(), "Path of Building", "Builds")  // macOS
-      : path.join(os.homedir(), "Documents", "Path of Building", "Builds");  // Windows/Linux
+      ? path.join(os.homedir(), "Path of Building (PoE2)", "Builds")  // macOS
+      : path.join(os.homedir(), "Documents", "Path of Building (PoE2)", "Builds");  // Windows/Linux
 
     this.pobDirectory = process.env.POB_DIRECTORY || defaultPoBPath;
 
@@ -190,7 +190,7 @@ class PoBMCPServer {
   }
 
   // Tree Data Fetching
-  private async getTreeData(version: string = "3_26"): Promise<PassiveTreeData> {
+  private async getTreeData(version: string = "0_1"): Promise<PassiveTreeData> {
     // Delegate to TreeService
     return await this.treeService.getTreeData(version);
   }

@@ -436,7 +436,7 @@ export async function handleSetBuildNotes(context: HandlerContext, buildName: st
     } else if (xml.includes('<Notes/>')) {
       xml = xml.replace('<Notes/>', `<Notes>${escaped}</Notes>`);
     } else {
-      xml = xml.replace('</PathOfBuilding>', `  <Notes>${escaped}</Notes>\n</PathOfBuilding>`);
+      xml = xml.replace('</PathOfBuilding2>', `  <Notes>${escaped}</Notes>\n</PathOfBuilding2>`);
     }
 
     await fs.writeFile(buildPath, xml, 'utf-8');

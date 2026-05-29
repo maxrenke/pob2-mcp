@@ -215,7 +215,7 @@ function formatClusterJewelResults(
   output += `League: ${league}\n`;
   output += `Total Results: ${totalResults}\n`;
   output += `Showing: ${items.length} items\n\n`;
-  output += `🔗 View full results: https://www.pathofexile.com/trade/search/${encodeURIComponent(league)}/${searchId}\n\n`;
+  output += `🔗 View full results: https://www.pathofexile.com/trade2/search/${encodeURIComponent(league)}/${searchId}\n\n`;
 
   for (let i = 0; i < items.length; i++) {
     const listing = items[i];
@@ -286,7 +286,7 @@ function formatClusterJewelResults(
       output += `   Whisper: ${listing.listing.whisper}\n`;
     }
 
-    output += `   🔗 View: https://www.pathofexile.com/trade/search/${encodeURIComponent(league)}/${searchId}#${listing.id}\n`;
+    output += `   🔗 View: https://www.pathofexile.com/trade2/search/${encodeURIComponent(league)}/${searchId}#${listing.id}\n`;
     output += '\n';
   }
 
@@ -388,7 +388,7 @@ function findClusterJewelsInBuild(build: any): any[] {
   const clusterJewels: any[] = [];
 
   // Get the active item set
-  const spec = build.PathOfBuilding?.Build?.Spec;
+  const spec = build.PathOfBuilding2?.Build?.Spec;
   if (!spec) return clusterJewels;
 
   const specs = Array.isArray(spec) ? spec : [spec];
@@ -397,7 +397,7 @@ function findClusterJewelsInBuild(build: any): any[] {
   if (!activeSpec) return clusterJewels;
 
   // Get items from the active spec
-  const items = build.PathOfBuilding?.Build?.Items;
+  const items = build.PathOfBuilding2?.Build?.Items;
   if (!items) return clusterJewels;
 
   const itemSets = Array.isArray(items.ItemSet) ? items.ItemSet : [items.ItemSet];

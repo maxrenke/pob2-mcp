@@ -20,7 +20,7 @@ import {
  * - Rate limit header parsing
  */
 export class TradeApiClient {
-  private readonly baseUrl = 'https://www.pathofexile.com/api/trade';
+  private readonly baseUrl = 'https://www.pathofexile.com/api/trade2';
   private readonly limiter: Bottleneck;
   private readonly cache = new Map<string, CacheEntry<any>>();
   private readonly defaultCacheTTL: number;

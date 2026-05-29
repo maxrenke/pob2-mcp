@@ -33,7 +33,7 @@ export class PoBLuaApiClient {
   constructor(options: PoBLuaApiOptions = {}) {
     // Prevent unhandled 'error' events (emitted on process exit) from crashing Node.js
     this.dataEmitter.on("error", () => {});
-    const forkSrc = options.cwd || path.join(os.homedir(), "Projects", "PathOfBuilding", "src");
+    const forkSrc = options.cwd || path.join(os.homedir(), "Projects", "PathOfBuilding2", "src");
     this.options = {
       cwd: forkSrc,
       cmd: options.cmd || "luajit",

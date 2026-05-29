@@ -321,7 +321,7 @@ export class BuildExportService {
    * Convert build data to XML string
    */
   private buildToXML(build: PoBBuild): string {
-    const xmlObj = { PathOfBuilding: build };
+    const xmlObj = { PathOfBuilding2: build };
     let xmlContent = this.xmlBuilder.build(xmlObj);
 
     // Add XML declaration if not present

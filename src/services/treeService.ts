@@ -19,7 +19,7 @@ export class TreeService {
     this.buildService = buildService;
   }
 
-  async getTreeData(version: string = "3_26"): Promise<PassiveTreeData> {
+  async getTreeData(version: string = "0_1"): Promise<PassiveTreeData> {
     // Check cache first
     const cached = this.treeDataCache.get(version);
     if (cached) {
@@ -50,18 +50,18 @@ export class TreeService {
     }
   }
 
-  async fetchTreeDataFromRepo(version: string = "3_26"): Promise<PassiveTreeData> {
+  async fetchTreeDataFromRepo(version: string = "0_1"): Promise<PassiveTreeData> {
     console.error(`[Tree Data] Fetching tree data for version ${version}...`);
 
-    const url = `https://raw.githubusercontent.com/PathOfBuildingCommunity/PathOfBuilding/master/src/TreeData/${version}/tree.lua`;
+    const url = `https://raw.githubusercontent.com/PathOfBuildingCommunity/PathOfBuilding2/main/src/TreeData/${version}/tree.lua`;
 
     return new Promise((resolve, reject) => {
       https.get(url, (response) => {
         if (response.statusCode === 404) {
-          // Version not found, try fallback to 3_26
-          console.error(`[Tree Data] Version ${version} not found, falling back to 3_26`);
-          if (version !== "3_26") {
-            this.fetchTreeDataFromRepo("3_26").then(resolve).catch(reject);
+          // Version not found, try fallback to 0_1
+          console.error(`[Tree Data] Version ${version} not found, falling back to 0_1`);
+          if (version !== "0_1") {
+            this.fetchTreeDataFromRepo("0_1").then(resolve).catch(reject);
             return;
           }
           reject(new Error(`Failed to fetch tree data: HTTP ${response.statusCode}`));

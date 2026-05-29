@@ -19,12 +19,12 @@ interface TradeContext {
 // ========================================
 
 function getTradeSearchUrl(league: string, searchId: string): string {
-  return `https://www.pathofexile.com/trade/search/${encodeURIComponent(league)}/${searchId}`;
+  return `https://www.pathofexile.com/trade2/search/${encodeURIComponent(league)}/${searchId}`;
 }
 
 function getTradeItemUrl(league: string, searchId: string, itemId: string): string {
   // Individual items can be highlighted in the search results
-  return `https://www.pathofexile.com/trade/search/${encodeURIComponent(league)}/${searchId}#${itemId}`;
+  return `https://www.pathofexile.com/trade2/search/${encodeURIComponent(league)}/${searchId}#${itemId}`;
 }
 
 /**

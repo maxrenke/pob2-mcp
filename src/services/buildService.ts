@@ -65,7 +65,7 @@ export class BuildService {
     const buildPath = sanitizeBuildName(buildName, this.pobDirectory);
     const content = await fs.readFile(buildPath, "utf-8");
     const parsed = this.parser.parse(content);
-    const buildData = parsed.PathOfBuilding;
+    const buildData = parsed.PathOfBuilding2;
 
     // Evict oldest entry if at capacity
     if (this.buildCache.size >= CACHE_MAX_SIZE) {

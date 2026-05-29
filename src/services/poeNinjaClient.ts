@@ -78,7 +78,7 @@ export interface ArbitrageOpportunity {
  * Client for fetching data from poe.ninja API
  */
 export class PoeNinjaClient {
-  private baseUrl = 'https://poe.ninja/poe1/api/economy/exchange/current';
+  private baseUrl = 'https://poe.ninja/poe2/api/economy/exchange/current';
   private cache = new Map<string, { data: any; timestamp: number }>();
   private cacheTTL = 300000; // 5 minutes
 
