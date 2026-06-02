@@ -6,3 +6,8 @@ build/
 settings.local.json
 jest-output.json
 coverage/
+
+# local junctions to game/PoB directories (machine-specific)
+game-filters/
+game-buildfiles/
+game-pob-builds/
