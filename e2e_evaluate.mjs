@@ -2,10 +2,19 @@
 import { PoBLuaApiClient } from './build/pobLuaBridge.js';
 import { handleEvaluateTradeItem } from './build/handlers/upgradeFinderHandlers.js';
 import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
-const FORK_SRC = 'C:\\Users\\m_ren\\Projects\\PathOfBuilding2\\src';
-const LUAJIT = 'C:\\Users\\m_ren\\scoop\\shims\\luajit.exe';
-const BUILD_XML = 'C:\\Users\\m_ren\\Documents\\Path of Building (PoE2)\\Builds\\STARTER - ED Contagion Lich (Deadrabbit).xml';
+// Machine-specific locations. Override via env vars; defaults assume a
+// standard scoop + Documents layout under the current user's home dir.
+const HOME = os.homedir();
+const FORK_SRC = process.env.POB2_FORK_SRC
+  ?? path.join(HOME, 'Projects', 'PathOfBuilding2', 'src');
+const LUAJIT = process.env.POB2_LUAJIT
+  ?? path.join(HOME, 'scoop', 'shims', 'luajit.exe');
+const BUILD_XML = process.env.POB2_BUILD_XML
+  ?? path.join(HOME, 'Documents', 'Path of Building (PoE2)', 'Builds',
+       'STARTER - ED Contagion Lich (Deadrabbit).xml');
 
 const client = new PoBLuaApiClient({ cwd: FORK_SRC, cmd: LUAJIT, timeoutMs: 60000 });
 await client.start();
